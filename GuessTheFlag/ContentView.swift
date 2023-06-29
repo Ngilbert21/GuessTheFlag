@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var alertMessage = Text("")
     @State private var questionNumber = 0
     @State private var gameOverText = "The Game is Over"
+    @State private var selectedFlag = -1
     var body: some View {
         ZStack {
             RadialGradient(stops: [
@@ -25,8 +26,7 @@ struct ContentView: View {
             VStack {
                 Spacer()
                 Text("Guess the Flag")
-                    .font(.largeTitle.bold())
-                    .foregroundColor(.white)
+                    .titleStyle()
                 VStack(spacing: 15) {
                     VStack {
                         Text("Tap the flag of")
@@ -40,17 +40,18 @@ struct ContentView: View {
                         Button {
                             flagTapped(number)
                         } label: {
-                            Image(countries[number])
-                                .renderingMode(.original)
-                                .clipShape(Capsule())
-                                .shadow(radius: 5)
+                            FlagImage(imageName: countries[number])
                         }
+                        .rotation3DEffect(.degrees(selectedFlag == number ? 360 : 0), axis: (x: 0, y: 1, z: 0))
+                        .animation(.default, value: selectedFlag)
+                        .opacity(selectedFlag == -1 || selectedFlag == number ? 1.0 : 0.25)
+                        .scaleEffect(selectedFlag == -1 || selectedFlag == number ? 1 : 0.5 )
                     }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
                 .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
                 
                 Spacer()
                 Spacer()
@@ -69,6 +70,7 @@ struct ContentView: View {
     }
     
     func flagTapped(_ number: Int) {
+        selectedFlag = number
         if number == correctAnswer {
             scoreTitle = "Correct"
             userScore += 1
@@ -82,12 +84,15 @@ struct ContentView: View {
             alertMessage = Text("The game is over, your final score is \(userScore)")
         }
         
-        showingScore = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            showingScore = true
+        }
     }
     
     func askQuestion() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
+        selectedFlag = -1
         questionNumber += 1
     }
     
@@ -99,8 +104,33 @@ struct ContentView: View {
     }
 }
 
+struct FlagImage: View {
+    var imageName: String
+    
+    var body: some View {
+        Image(imageName)
+            .renderingMode(.original)
+            .clipShape(Capsule())
+            .shadow(radius: 5)
+    }
+}
+
+struct customModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.largeTitle.bold())
+            .foregroundColor(.white)
+    }
+}
+
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+extension View {
+    func titleStyle() -> some View {
+        modifier(customModifier())
     }
 }
